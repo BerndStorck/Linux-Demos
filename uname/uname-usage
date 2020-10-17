@@ -5,34 +5,22 @@
 # Demonstration der Parameter von uname und wahlweise Aufruf der
 # Hilfeseite oder der Handbuchseiten zu dem Befehl.
 #
+# Demonstrates -- in this version only in German langauge -- the usage
+# of the command uname and ists various options. Also gives a quick
+# access to the help page of uname, the manual page for uname and the
+# info document about uname. Additionally it includes a flight Hansi
+# Aircraft Inc. "Please don't faste your seat belt. Trust me, you are
+# sure."
+#
 # Bernd Storck, https://www.facebook.com/BStLinux/
 #
 
 PROG_NAME="uname_usage"
-PROG_VERSION="1.0.0"
+PROG_VERSION="1.0.1"
 
 WHITE="\e[1;37m"
 BLUE="\e[1;34m"
 COLOROFF="\e[0m"
-
-opt1="${1,,}"
-case "$opt1" in
-    --version)
-        echo "$PROG_NAME ($PROG_VERSION)"
-        exit 0
-        ;;
-    -\#)
-        echo "$PROG_VERSION"
-        exit 0
-        ;;
-    -h | --help | --hilf)
-        echo "-- $PROG_NAME ($PROG_VERSION) ----------------"
-        echo "Dieses Programm demonstriert das Programm uname,"
-        echo "mit dem Sie grundlegende Systemdaten abfragen können."
-        echo "Es wird ohne Optionen aufgerufen."
-        exit 0
-        ;;
-esac
 
 declare -A uname_option=([a]="alle Informationen"
   [s]="Kernelname"
@@ -55,7 +43,18 @@ function contact {
     read -rp " Zum Fortsetzen [Enter] drücken!"
 }
 
+function pause {
+# Downwards compatible usage of sleep.  Old versions of the sleep do not
+# accept floting point numbers.
+    if sleep .0005 2> /dev/null; then
+        sleep "$1"
+    else
+        sleep 1
+    fi
+}
+
 function hilfe_seite {
+# Displays the help page of the command.
     clear
     echo -e "${WHITE}\n \n---------------  DIE HILFESEITE  ---------------\n${COLOROFF}"
     uname --help
@@ -64,24 +63,30 @@ function hilfe_seite {
 }
 
 function run {
+# Simulates keying a command at the prompt and displays the current
+# answer the system gives.
     if [ "$#" != 2 ]; then
         WAITFOR=".3"
     else
         WAITFOR=".$2"
-    fi   
+    fi
     loop_end="$(( ${#1} - 1 ))"
     echo -ne "${COLOROFF} $USER@$(hostname) $(basename "$PWD") $ "
     for i in $(seq 0 $loop_end); do
         sign="${1:$i:1}"
         [ "$sign" = "-" ] && echo -ne "${WHITE}"
         echo -n "$sign"
-        sleep "$WAITFOR"
+        pause "$WAITFOR"
     done
     echo -ne "\n ${BLUE}"
     eval "$1"
 }
 
 function command_demo {
+# Lists the short command options of uname, their general meaning and
+# the values which will be researched by those options at the current
+# system.  Gives also some examples of option combinations and the values
+# it would result in.
     clear
     echo -ne "${WHITE}\n "
     whatis -s 1 uname | sed -E 's/ * - */  --  /g'
@@ -103,13 +108,13 @@ function command_demo {
         echo -e "\n ---------------  BEFEHLS-BEISPIELE  -----------\n${COLOROFF}"
         run "uname -morsn"
         echo
-        sleep 4
+        pause 4
         run "uname -srm"
         echo
-        sleep 3
+        pause 3
         run "uname -srv" "2"
         echo
-        sleep 2
+        pause 2
         run "uname --kernel-name --kernel-release --kernel-version" "1"
         echo -e "${COLOROFF}"
         read -rp " Zum Fortsetzen [Enter] drücken!"
@@ -117,6 +122,7 @@ function command_demo {
 }
 
 function menue {
+# Main menue.
     while ! grep -E '[1-4]' <<< "$wahl"; do
         clear
         echo -e "\n${WHITE}             uname               ${COLOROFF}"
@@ -147,6 +153,26 @@ function menue {
         esac
     done
 }
+
+### main ################################
+opt1="${1,,}"
+case "$opt1" in
+    --version)
+        echo "$PROG_NAME ($PROG_VERSION)"
+        exit 0
+        ;;
+    -\#)
+        echo "$PROG_VERSION"
+        exit 0
+        ;;
+    -h | --help | --hilf)
+        echo "-- $PROG_NAME ($PROG_VERSION) ----------------"
+        echo "Dieses Programm demonstriert das Programm uname,"
+        echo "mit dem Sie grundlegende Systemdaten abfragen können."
+        echo "Es wird ohne Optionen aufgerufen."
+        exit 0
+        ;;
+esac
 
 hilfe_seite
 command_demo
