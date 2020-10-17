@@ -1,0 +1,155 @@
+#! /bin/bash
+#
+# uname-usage, 2020-10-17
+#
+# Demonstration der Parameter von uname und wahlweise Aufruf der
+# Hilfeseite oder der Handbuchseiten zu dem Befehl.
+#
+# Bernd Storck, https://www.facebook.com/BStLinux/
+#
+
+PROG_NAME="uname_usage"
+PROG_VERSION="1.0.0"
+
+WHITE="\e[1;37m"
+BLUE="\e[1;34m"
+COLOROFF="\e[0m"
+
+opt1="${1,,}"
+case "$opt1" in
+    --version)
+        echo "$PROG_NAME ($PROG_VERSION)"
+        exit 0
+        ;;
+    -\#)
+        echo "$PROG_VERSION"
+        exit 0
+        ;;
+    -h | --help | --hilf)
+        echo "-- $PROG_NAME ($PROG_VERSION) ----------------"
+        echo "Dieses Programm demonstriert das Programm uname,"
+        echo "mit dem Sie grundlegende Systemdaten abfragen können."
+        echo "Es wird ohne Optionen aufgerufen."
+        exit 0
+        ;;
+esac
+
+declare -A uname_option=([a]="alle Informationen"
+  [s]="Kernelname"
+  [n]="Netzwerkname der Maschine"
+  [r]="Kernel-Release-Nummer"
+  [v]="Kernelversion"
+  [m]="Maschinentyp (Hardware)"
+  [p]="Prozessortyp (nicht portabel)"
+  [i]="Hardwareplattform (nicht portabel)"
+  [o]="Name des Betriebssystems")
+
+function contact {
+    clear
+    echo "
+
+ Autor dieser Demonstration des Kommandos \"uname\": Bernd Storck.
+ Kontakt: https://www.facebook.com/BStLinux/
+
+"
+    read -rp " Zum Fortsetzen [Enter] drücken!"
+}
+
+function hilfe_seite {
+    clear
+    echo -e "${WHITE}\n \n---------------  DIE HILFESEITE  ---------------\n${COLOROFF}"
+    uname --help
+    echo
+    read -rp "Zum Fortsetzen [Enter] drücken!"
+}
+
+function run {
+    if [ "$#" != 2 ]; then
+        WAITFOR=".3"
+    else
+        WAITFOR=".$2"
+    fi   
+    loop_end="$(( ${#1} - 1 ))"
+    echo -ne "${COLOROFF} $USER@$(hostname) $(basename "$PWD") $ "
+    for i in $(seq 0 $loop_end); do
+        sign="${1:$i:1}"
+        [ "$sign" = "-" ] && echo -ne "${WHITE}"
+        echo -n "$sign"
+        sleep "$WAITFOR"
+    done
+    echo -ne "\n ${BLUE}"
+    eval "$1"
+}
+
+function command_demo {
+    clear
+    echo -ne "${WHITE}\n "
+    whatis -s 1 uname | sed -E 's/ * - */  --  /g'
+    echo -ne "${BLUE}\n"
+    echo " AUFRUF: uname [-a|-s|-n|-r|-v|-m|-p|-i|-o]"
+    echo " BEISPIEL: uname -a"
+    echo -ne "${WHITE}\n"
+    echo -e "\n --------------  OPTIONS-WIRKUNG  --------------\n"
+    printf "${WHITE} %s ${COLOROFF}: %36s\n ${BLUE}%s\n\n" "-a" "${uname_option[a]}:" "$(uname "-a")"
+    for i in s n r v m p i o; do
+      printf "${WHITE} -%1s ${COLOROFF}: %-34s : ${BLUE}%s \n" "$i" "${uname_option[$i]}" "$(uname "-$i")"
+    done
+    echo -e "${COLOROFF}"
+    if [ "$1" != "nostop" ]; then
+        read -rp " Zum Fortsetzen [Enter] drücken!"
+        command_demo "nostop"
+    else
+        echo -ne "${WHITE}"
+        echo -e "\n ---------------  BEFEHLS-BEISPIELE  -----------\n${COLOROFF}"
+        run "uname -morsn"
+        echo
+        sleep 4
+        run "uname -srm"
+        echo
+        sleep 3
+        run "uname -srv" "2"
+        echo
+        sleep 2
+        run "uname --kernel-name --kernel-release --kernel-version" "1"
+        echo -e "${COLOROFF}"
+        read -rp " Zum Fortsetzen [Enter] drücken!"
+    fi
+}
+
+function menue {
+    while ! grep -E '[1-4]' <<< "$wahl"; do
+        clear
+        echo -e "\n${WHITE}             uname               ${COLOROFF}"
+        echo "--------------------------------------------"
+        echo " 1 -> Hilfeseite anzeigen"
+        echo " 2 -> Handbuchseite öffnen"
+        echo " 3 -> Das Info-Dokument über uname anzeigen"
+        echo " 4 -> Das Kommando demonstrieren"
+        echo " 5 -> Kontakt"
+        echo " 6 -> Ende"
+        echo "--------------------------------------------"
+        echo -ne "\n Wählen Sie durch Zahleneingabe:"
+        read -r -N1 wahl
+        case "$wahl" in
+            1) hilfe_seite; wahl=;;
+            2) man uname; wahl=;;
+            3)
+               if which pinfo &> /dev/null; then
+                   pinfo uname
+               else
+                   info uname
+               fi
+               wahl=
+               ;;
+            4) command_demo; wahl=;;
+            5) contact; wahl=;;
+            6) echo -e "\n Danke, dass Sie mit Hansi Storck geflogen sind!\n"; exit 0;;
+        esac
+    done
+}
+
+hilfe_seite
+command_demo
+while true; do
+    menue
+done
